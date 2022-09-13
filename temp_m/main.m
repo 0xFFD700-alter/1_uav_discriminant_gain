@@ -39,7 +39,6 @@ for l1 = 1: L - 1
 end
 u = u * 2 / L / (L - 1);
 
-
 a_iter = sum(c_iter, 1) .^ 2 .* u ./ (sum(c_iter, 1) .^ 2 .* sigma + sum(delta .* c_iter .^ 2, 1) + delta_0) ./ 1e1;
 
 epsilon = 1e-3;
@@ -48,14 +47,12 @@ gain = 0;
 gain_list = sum(a_iter);
 
 %%
-% svm_model = './svm_model/svm_model.pkl'
-% with open(svm_model, 'rb') as file:
-%     classifier = pickle.load(file)
-
-% z_hat = (np.sum(z * c_iter, axis=1) + np.random.normal(0, delta_0, N))
-% predicted = classifier.predict(z_hat)
-% accuracy = metrics.accuracy_score(label_test, predicted)
-% accuracy_list = [accuracy]
+load('./Mdl.mat');
+accuracy_list = [];
+z_hat = squeeze(sum(reshape(c_iter, [1 size(c_iter)]) .* z, 2)) + randn(1, N) * sqrt(delta_0);
+predicted = predict(Mdl, z_hat);
+accuracy = sum(predicted == label_test) / (L * num_test_per_class);
+accuracy_list = [accuracy_list accuracy];
 
 while 1
     cvx_begin
@@ -114,18 +111,24 @@ while 1
     end
     
     gain_list = [gain_list gain];
-%     z_hat = (np.sum(z * c_iter, axis=1) + np.random.normal(0, delta_0, N))
-%     predicted = classifier.predict(z_hat)
-%     accuracy = metrics.accuracy_score(label_test, predicted)
-%     accuracy_list.append(accuracy)
+    z_hat = squeeze(sum(reshape(c_iter, [1 size(c_iter)]) .* z, 2)) + randn(1, N) * sqrt(delta_0);
+    predicted = predict(Mdl, z_hat);
+    accuracy = sum(predicted == label_test) / (L * num_test_per_class);
+    accuracy_list = [accuracy_list accuracy];
+
     if abs(gain - gain_iter) < epsilon
         break
     end
 end
 
 %%
-figure(1)
+figure('Position', [450 100 560 600]);
+subplot(211);
 plot(gain_list, '-o', 'MarkerFaceColor', 'b');
 title('discriminant gain');
-% ylabel('discriminant gain');
+xlabel('iteration');
+
+subplot(212);
+plot(accuracy_list, '-o', 'MarkerFaceColor', 'r');
+title('accuracy');
 xlabel('iteration');
