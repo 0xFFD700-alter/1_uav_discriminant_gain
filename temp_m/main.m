@@ -1,4 +1,5 @@
-clc;clear;close all;
+% clc;
+clear;close all;
 num_train_per_class = 800;
 num_test_per_class = 200;
 load('./data/inference/mean.mat'); % mean value
@@ -10,7 +11,7 @@ load('./data/inference/label_test.mat'); % label of test data
 
 L = size(mu, 1);
 N = size(mu, 2);
-K = size(z, 2);
+K = size(delta, 1);
 
 num_a = fix(K * 0.3) + 1;
 num_b = K - num_a;
@@ -30,6 +31,7 @@ sca_momentum = 1 - 1e-1;
 
 E = delta + sigma + mean(mu.^2, 1);
 c_iter = sqrt(P .* L_0 ./ E ./ 6.6e5);
+% c_iter = ones(K, N) * 1e-8;
 
 u = zeros(1, N);
 for l1 = 1: L - 1
@@ -40,20 +42,23 @@ end
 u = u * 2 / L / (L - 1);
 
 a_iter = sum(c_iter, 1) .^ 2 .* u ./ (sum(c_iter, 1) .^ 2 .* sigma + sum(delta .* c_iter .^ 2, 1) + delta_0) ./ 1e1;
+% a_iter = ones(1, N) * 1e-5;
 
 epsilon = 1e-3;
-epsilon_sca = 1;
+epsilon_sca = 1e-1;
 gain = 0;
 gain_list = sum(a_iter);
 
-%%
 load('./Mdl.mat');
 accuracy_list = [];
-z_hat = squeeze(sum(reshape(c_iter, [1 size(c_iter)]) .* z, 2)) + randn(1, N) * sqrt(delta_0);
+% factor = sum(c_iter, 'all') / sum(sum(c_iter) .^ 2);
+factor = 1 ./ sum(c_iter);
+z_hat = factor .* (squeeze(sum(reshape(c_iter, [1 size(c_iter)]) .* z, 2)) + randn(1, N) * sqrt(delta_0));
 predicted = predict(Mdl, z_hat);
 accuracy = sum(predicted == label_test) / (L * num_test_per_class);
 accuracy_list = [accuracy_list accuracy];
 
+%%
 while 1
     cvx_begin
     cvx_solver mosek
@@ -75,7 +80,7 @@ while 1
     q_norm <= slot * Vm * ones(N, 1);
     cvx_end
     
-    assert(strcmp(cvx_status, 'Solved'))
+    assert(strcmp(cvx_status, 'Solved'));
     q_iter = q;
     
     while 1
@@ -99,27 +104,33 @@ while 1
         >= sum(c .^ 2 .* delta) + delta_0;
         cvx_end
         
-        assert(strcmp(cvx_status, 'Solved'))
+        assert(strcmp(cvx_status, 'Solved'));
         gain_iter = gain;
         gain = cvx_optval;
         c_iter = sca_momentum * c_iter + (1 - sca_momentum) * c;
         a_iter = sca_momentum * a_iter + (1 - sca_momentum) * a;
         
         if abs(gain - gain_iter) < epsilon_sca
-            break
+            break;
         end
     end
     
     gain_list = [gain_list gain];
-    z_hat = squeeze(sum(reshape(c_iter, [1 size(c_iter)]) .* z, 2)) + randn(1, N) * sqrt(delta_0);
+%     factor = sum(c_iter, 'all') / sum(sum(c_iter) .^ 2);
+    factor = 1 ./ sum(c_iter);
+    z_hat = factor .* (squeeze(sum(reshape(c_iter, [1 size(c_iter)]) .* z, 2)) + randn(1, N) * sqrt(delta_0));
     predicted = predict(Mdl, z_hat);
     accuracy = sum(predicted == label_test) / (L * num_test_per_class);
     accuracy_list = [accuracy_list accuracy];
 
     if abs(gain - gain_iter) < epsilon
-        break
+        break;
     end
 end
+
+save('./c.mat', 'c');
+save('./a.mat', 'a');
+save('./q.mat', 'q');
 
 %%
 figure('Position', [450 100 560 600]);
