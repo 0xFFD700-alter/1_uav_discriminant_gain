@@ -181,19 +181,19 @@ if __name__ == '__main__':
     mean = data_normed.mean(axis=1)
     var = data_normed.var(axis=1).mean(axis=0)
     
-    np.save('./data/training/data.npy', data)
+    np.save('./data/training/data.npy', data_normed)
     np.save('./data/training/label.npy', label)
     np.save('./data/inference/mean.npy', mean)
     np.save('./data/inference/var.npy', var)
     
-    sio.savemat('../temp_m/data/training/data.mat', {'data':data})
+    sio.savemat('../temp_m/data/training/data.mat', {'data':data_normed})
     sio.savemat('../temp_m/data/training/label.mat', {'label':label})
     sio.savemat('../temp_m/data/inference/mean.mat', {'mu':mean})
     sio.savemat('../temp_m/data/inference/var.mat', {'sigma':var})
     
     # data_test_true -> (num_class * num_test_per_class, radar * pca_dim)
     var_list = rng.uniform(0.1, 0.6, num_sensor)
-    data_test_true = data[:, num_train_per_class:].reshape(num_class * num_test_per_class, -1)
+    data_test_true = data_normed[:, num_train_per_class:].reshape(num_class * num_test_per_class, -1)
     # TODO: different delta for different dim
     var_sensor = np.full((data_test_true.shape[-1], num_sensor), var_list).T
     data_test_noise = add_distortion(data_test_true, var_sensor)

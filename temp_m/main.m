@@ -9,6 +9,7 @@ load('./data/inference/trajectory_sensor.mat'); % trajectory of sensors
 load('./data/inference/data_test_noise.mat'); % distorted data
 load('./data/inference/label_test.mat'); % label of test data
 
+rng(2022);
 L = size(mu, 1);
 N = size(mu, 2);
 K = size(delta, 1);
@@ -23,7 +24,7 @@ T = 30.0;                                       % s
 slot = T / N;                                   % s
 Vm = 20.0;                                      % m/s
 q_init = [200.0 0.0];                           % m
-delta_0 = 1e-11;                                % W
+delta_0 = 1e-8;                                 % W
 P = P_list * ones(1, N);                        % W
 P_bar = P_list ./ 2;                            % W
 L_0 = 1e-4;                                     % dB
@@ -45,7 +46,7 @@ a_iter = sum(c_iter, 1) .^ 2 .* u ./ (sum(c_iter, 1) .^ 2 .* sigma + sum(delta .
 % a_iter = ones(1, N) * 1e-5;
 
 epsilon = 1e-3;
-epsilon_sca = 1e-1;
+epsilon_sca = 1;
 gain = 0;
 gain_list = sum(a_iter);
 
@@ -143,3 +144,32 @@ subplot(212);
 plot(accuracy_list, '-o', 'MarkerFaceColor', 'r');
 title('accuracy');
 xlabel('iteration');
+
+load('./q.mat');
+figure;
+title('trajectory');
+axis([0 400 0 400]);
+grid on;
+
+start_a = [50.0 150.0];
+end_a = [50.0 350.0];
+start_b = [350.0 150.0];
+end_b = [250.0 325.0];
+center_a = [linspace(start_a(1), end_a(1), N)' linspace(start_a(2), end_a(2), N)'];
+center_b = [linspace(start_b(1), end_b(1), N)' linspace(start_b(2), end_b(2), N)'];
+
+hold on;
+plot(center_a(:, 1), center_a(:, 2));
+plot(center_b(:, 1), center_b(:, 2));
+plot(q_iter(:, 1), q_iter(:, 2), 'b');
+legend('cluster A', 'cluster B', 'UAV');
+
+init_a = w(1: num_a, 1, :);
+fin_a = w(1: num_a, end, :);
+init_b = w(num_a + 1: end, 1, :);
+fin_b = w(num_a + 1: end, end, :);
+
+scatter(init_a(:, 1), init_a(:, 2), 'HandleVisibility', 'off');
+scatter(init_b(:, 1), init_b(:, 2), 'HandleVisibility', 'off');
+scatter(fin_a(:, 1), fin_a(:, 2), 'HandleVisibility', 'off');
+scatter(fin_b(:, 1), fin_b(:, 2), 'HandleVisibility', 'off');
