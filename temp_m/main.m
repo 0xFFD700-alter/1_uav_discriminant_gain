@@ -53,11 +53,11 @@ gain_list = sum(a_iter);
 load('./Mdl.mat');
 accuracy_list = [];
 % factor = sum(c_iter, 'all') / sum(sum(c_iter) .^ 2);
-factor = 1 ./ sum(c_iter);
-z_hat = factor .* (squeeze(sum(reshape(c_iter, [1 size(c_iter)]) .* z, 2)) + randn(1, N) * sqrt(delta_0));
-predicted = predict(Mdl, z_hat);
-accuracy = sum(predicted == label_test) / (L * num_test_per_class);
-accuracy_list = [accuracy_list accuracy];
+% factor = 1 ./ sum(c_iter);
+% z_hat = factor .* (squeeze(sum(reshape(c_iter, [1 size(c_iter)]) .* z, 2)) + randn(1, N) * sqrt(delta_0));
+% predicted = predict(Mdl, z_hat);
+% accuracy = sum(predicted == label_test) / (L * num_test_per_class);
+% accuracy_list = [accuracy_list accuracy];
 
 %%
 while 1
@@ -98,11 +98,17 @@ while 1
         end
         c .^ 2 .* (vstack_2 + H ^ 2) .* E <= P * L_0;
         sum(c .^ 2 .* (vstack_2 + H ^ 2) .* E, 2) <= P_bar * L_0 * N;
-        u ./ a_iter .* sum(c_iter) .^ 2 ...
-        + sum(c - c_iter) * 2 .* u ./ a_iter .* sum(c_iter) ...
-        - (a - a_iter) .* u ./ a_iter .^ 2 .* sum(c_iter) .^ 2 ...
-        - sum(c) .^ 2 .* sigma ...
-        >= sum(c .^ 2 .* delta) + delta_0;
+
+        function_g = sum(c_iter) .^2 ./ a_iter;
+        first_order_g = 2 * sum(c_iter) ./ a_iter .* sum(c - c_iter) - (sum(c_iter)./a_iter).^2 .* (a - a_iter);
+        taylor_g = function_g + first_order_g;
+        sum(c .^ 2 .* delta) + sum(c) .^ 2 .* sigma + delta_0 <= taylor_g .* u;
+        
+%         u ./ a_iter .* sum(c_iter) .^ 2 ...
+%         + sum(c - c_iter) * 2 .* u ./ a_iter .* sum(c_iter) ...
+%         - (a - a_iter) .* u ./ a_iter .^ 2 .* sum(c_iter) .^ 2 ...
+%         - sum(c) .^ 2 .* sigma ...
+%         >= sum(c .^ 2 .* delta) + delta_0;
         cvx_end
         
         assert(strcmp(cvx_status, 'Solved'));
@@ -118,11 +124,11 @@ while 1
     
     gain_list = [gain_list gain];
 %     factor = sum(c_iter, 'all') / sum(sum(c_iter) .^ 2);
-    factor = 1 ./ sum(c_iter);
-    z_hat = factor .* (squeeze(sum(reshape(c_iter, [1 size(c_iter)]) .* z, 2)) + randn(1, N) * sqrt(delta_0));
-    predicted = predict(Mdl, z_hat);
-    accuracy = sum(predicted == label_test) / (L * num_test_per_class);
-    accuracy_list = [accuracy_list accuracy];
+%     factor = 1 ./ sum(c_iter);
+%     z_hat = factor .* (squeeze(sum(reshape(c_iter, [1 size(c_iter)]) .* z, 2)) + randn(1, N) * sqrt(delta_0));
+%     predicted = predict(Mdl, z_hat);
+%     accuracy = sum(predicted == label_test) / (L * num_test_per_class);
+%     accuracy_list = [accuracy_list accuracy];
 
     if abs(gain - gain_iter) < epsilon
         break;
@@ -173,3 +179,5 @@ scatter(init_a(:, 1), init_a(:, 2), 'HandleVisibility', 'off');
 scatter(init_b(:, 1), init_b(:, 2), 'HandleVisibility', 'off');
 scatter(fin_a(:, 1), fin_a(:, 2), 'HandleVisibility', 'off');
 scatter(fin_b(:, 1), fin_b(:, 2), 'HandleVisibility', 'off');
+
+% mac截图快捷键：control + cmd + shift + 4

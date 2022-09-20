@@ -1,0 +1,12 @@
+PCA_dim = 12，取了2，4，6，8，10，12
+num_device = 3  # number of devices, K
+power_mdB = 10
+bandwidth = 1.5 * 10**6
+num_antenna = 8  # number of antenna, N
+num_class = 4
+var_dist_scale = 0.4
+var_comm_noise = 1  # communication noise, sigma_{0}^{2}
+rng = default_rng(618)
+
+模型是用6400个数据训练的，测试是1600个
+训练一个12维的模型，假如传4个维度就代表，除了前4个维度剩下8维度取值为0

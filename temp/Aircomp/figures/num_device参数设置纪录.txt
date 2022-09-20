@@ -1,0 +1,21 @@
+1，3，5，7，9，11，13
+PCA_dim = 12  # PCA dimension, M
+power_mdB = 12
+bandwidth = 1.5 * 10**6
+num_antenna = 8  # number of antenna, N
+num_class = 4
+var_dist_scale = 0.4
+var_comm_noise = 1  # communication noise, sigma_{0}^{2}
+rng = default_rng(2022)
+
+对FC的    rng = default_rng(4321)
+    rayli_fading_real = rng.normal(0, 1, (1, num_antenna))  # rayleigh fading ~ CN(0,1)
+    rng3 = default_rng(999)
+    rayli_fading_img = rng3.normal(0, 1, (1, num_antenna))
+    for i in range(1,num_device):
+        rng2 = default_rng(i)
+        rng3 = default_rng(100-i)
+        rayli_fading_real = np.vstack((rayli_fading_real,rng2.normal(0, 1, (1, num_antenna))))   # rayleigh fading ~ CN(0,1)
+        rayli_fading_img = np.vstack((rayli_fading_img,rng3.normal(0, 1, (1, num_antenna))))
+
+模型是用6400个数据训练的，测试是1600个

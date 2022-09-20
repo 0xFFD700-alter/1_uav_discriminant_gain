@@ -1,0 +1,34 @@
+以下几个py文件没有用上（在做实验的时候自己比比划划的）：
+1.data_set
+2.uesless_main
+3.understand
+
+FC_PIM.py：
+朱老师文章的算法，用来画随PCA_dimension变化的图
+
+finding_centroid_solution：
+朱老师文章的算法，用来画随power和num_device变化的图
+
+main：
+自己文章的算法、以及最简单的那个baseline的算法，用来画随power和num_device变化的图
+
+main_acc_dis：
+自己文章的算法，用来画随power变化的图，从而画出accuracy和discriminant gain关系图（这两个点之所以变化是因为power变了）
+
+main_DIM：
+自己文章的算法、以及最简单的那个baseline的算法，用来画随power和num_device变化的图
+
+plot_acc_dis：
+画accuracy和discriminant gain关系图
+
+plot_num_device：
+画有关num_device变化的相关图
+
+plot_PCA_dim：
+画有关PCA_dim变化的相关图
+
+plot_power：
+画有关power变化的相关图
+
+svm_stft_3radar:
+产生模型图（包括svm和mlp模型，数据集的均值方差等等）
