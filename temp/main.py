@@ -256,3 +256,49 @@ while True:
 # ax = plt.subplot(1, 1, 1)
 # ax.set_ylim(0, 80)
 # plt.bar([k for k in range(N)], alpha_iter)
+
+#%%
+
+# s = [1, 1, 1, 1, 1, 2, 2, 2, 2]
+
+
+# def invoke(a, b):
+#     return a == b
+
+# def solution(n, s):
+#     '''
+#     returns:
+#     m - # of cards that are equivalent
+#     c - a card that has m copies
+#     '''
+#     if n == 1:
+#         return s[0]
+#     c1 = solution(n // 2, s[:n // 2])
+#     c2 = solution(n - n // 2, s[n // 2:])
+    
+#     return merge(c1, c2, n, s)
+
+
+# def merge(c1, c2, n, s):
+#     '''
+#     invoke(a, b):
+#     test if card a and card b are equivalent
+#     Python list object:
+#     s1 + s2 do the same thing as s1 \cup s2
+#     '''
+#     count_c1 = 0
+#     count_c2 = 0
+#     for c in s:
+#         if c1 and invoke(c1, c) == True:
+#             count_c1 += 1
+#         if c2 and invoke(c2, c) == True:
+#             count_c2 += 1
+    
+#     if count_c1 > n / 2:
+#         return c1
+#     if count_c2 > n / 2:
+#         return c2
+    
+#     return None
+    
+# ans = solution(len(s), s)
