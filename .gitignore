@@ -1,4 +1,4 @@
-temp/data/THREE_RADAR_STFT_MAT/*
-temp/.spyproject/*
+temp/data/THREE_RADAR_STFT_MAT
+temp/.spyproject
 .DS_Store
 *.asv
