@@ -1,57 +1,103 @@
 % clc;
 clear;close all;
-num_train_per_class = 800;
-num_test_per_class = 200;
 load('./data/inference/mean.mat'); % mean value
 load('./data/inference/var.mat'); % ground-true var
 load('./data/inference/var_sensor.mat'); % distortion var
 load('./data/inference/trajectory_sensor.mat'); % trajectory of sensors
 load('./data/inference/data_test_noise.mat'); % distorted data
 load('./data/inference/label_test.mat'); % label of test data
+load('./Mdl.mat'); % SVM model 12-dim
 
+
+
+% parameter settings
 rng(2022);
+
+% data dimensions
 L = size(mu, 1);
-N = size(mu, 2);
-K = size(delta, 1);
+dim.N = size(mu, 2);                % N -> # of feature dims (# of time slots)
+dim.K = size(delta, 1);             % K -> # of sensors
+num_a = fix(dim.K * 0.3) + 1;
+num_b = dim.K - num_a;
 
-num_a = fix(K * 0.3) + 1;
-num_b = K - num_a;
-P_list = [0.05 * ones(num_a, 1); 0.03 * ones(num_b, 1)];
-P_list = P_list * 300;
-
-H = 100.0;                                      % m
-T = 30.0;                                       % s
-slot = T / N;                                   % s
-Vm = 20.0;                                      % m/s
-q_init = [200.0 0.0];                           % m
-delta_0 = 1e-8;                                 % W
-P = P_list * ones(1, N);                        % W
-P_bar = P_list ./ 2;                            % W
-L_0 = 1e-4;                                     % dB
-sca_momentum = 1 - 1e-1;
-
-E = delta + sigma + mean(mu.^2, 1);
-c_iter = sqrt(P .* L_0 ./ E ./ 6.6e5);
-% c_iter = ones(K, N) * 1e-8;
-
-u = zeros(1, N);
-for l1 = 1: L - 1
-    for l2 = l1 + 1: L
-        u = u + (mu(l1, :) - mu(l2, :)) .^ 2;
+% parameters of data distribution (used to compute discriminant gain)
+gain.u = zeros(1, dim.N);
+for i = 1: L - 1
+    for j = i + 1: L
+        gain.u = gain.u + (mu(i, :) - mu(j, :)) .^ 2;
     end
 end
-u = u * 2 / L / (L - 1);
+gain.u = gain.u * 2 / L / (L - 1);          % average square mean
+gain.sigma = sigma;                         % variance of ground truth
+gain.delta = delta;                         % variance of distortion
+gain.delta_0 = 1e-8;                        % variance of Gaussian noise
 
-a_iter = sum(c_iter, 1) .^ 2 .* u ./ (sum(c_iter, 1) .^ 2 .* sigma + sum(delta .* c_iter .^ 2, 1) + delta_0) ./ 1e1;
-% a_iter = ones(1, N) * 1e-5;
+% power constraints
+P_list = [9 * ones(num_a, 1); 12 * ones(num_b, 1)];
+P_list = P_list * 1;
+power.P = P_list * ones(1, dim.N);                      % peak power constraints
+power.ratio = 0.8;                                      % ratio of the average to the peak
+power.P_bar = P_list .* power.ratio;                    % average power constraints
+power.L_0 = 1e-4;                                       % channel fading at reference distance (1m)
+power.E = gain.delta + gain.sigma + mean(mu.^2, 1);     % expectation of signal power
+power.H = 100.0;                                        % UAV hovering altitude
+power.w = w;                                            % trajectory of sensors
 
+% UAV mobility constraints
+uav.slot = 30.0 / dim.N;            % duration of each time slot (duration / # of time slots)
+uav.Vm = 20.0;                      % UAV maximum speed
+uav.q_init = [200.0 0.0];           % UAV initial position
+
+
+
+% alternating opt initialization
+
+% c_iter -> init c
+c_iter = ones(dim.K, dim.N) * 1e-8;
+
+% q_iter -> init UAV trajectory
+centroid = squeeze(mean(w));
+q_iter = zeros(dim.N, 2);
+if norm(centroid(1, :) - uav.q_init) <= uav.slot * uav.Vm
+    q_iter(1, :) = centroid(1, :);
+else
+    q_iter(1, :) = uav.q_init + (centroid(1, :) - uav.q_init) * uav.slot * uav.Vm / norm(centroid(1, :) - uav.q_init);
+end
+for i = 2:dim.N
+    if norm(centroid(i, :) - q_iter(i - 1, :)) <= uav.slot * uav.Vm
+        q_iter(i, :) = centroid(i, :);
+    else
+        q_iter(i, :) = q_iter(i - 1, :) + (centroid(i, :) - q_iter(i - 1, :)) * uav.slot * uav.Vm / norm(centroid(1, :) - q_iter(i - 1, :));
+    end
+end
+
+
+
+% opt parameter settings
+sca.momentum = 0.8;
+sca.epsilon = 1e-1;
 epsilon = 1e-3;
-epsilon_sca = 1;
-gain = 0;
-gain_list = sum(a_iter);
+gain_iter = 0;
+gain_list = [];
 
-load('./Mdl.mat');
-accuracy_list = [];
+
+[c_iter, a_iter] = solve_c(q_iter, dim, power, gain, sca);
+% q_iter = solve_q(c_iter, dim, power, uav);
+
+% while 1
+%     q_iter = solve_q(c_iter, dim, power, uav);
+%     [c_iter, a_iter] = solve_c(q_iter, dim, power, gain, sca);
+%     
+%     gain_opt = sum(a_iter);
+%     gain_list = [gain_list gain_opt];
+% 
+%     if abs(gain_opt - gain_iter) < epsilon
+%         break;
+%     end
+%     gain_iter = gain_opt;
+% end
+
+
 % factor = sum(c_iter, 'all') / sum(sum(c_iter) .^ 2);
 % factor = 1 ./ sum(c_iter);
 % z_hat = factor .* (squeeze(sum(reshape(c_iter, [1 size(c_iter)]) .* z, 2)) + randn(1, N) * sqrt(delta_0));
@@ -59,125 +105,47 @@ accuracy_list = [];
 % accuracy = sum(predicted == label_test) / (L * num_test_per_class);
 % accuracy_list = [accuracy_list accuracy];
 
-%%
-while 1
-    cvx_begin
-    cvx_solver mosek
-    variable q(N, 2)
-    expression vstack_1(K, N)
-    expression q_norm(N, 1)
-    for k = 1: K
-        vstack_1(k, :) = sum((q - squeeze(w(k, :, :))) .^ 2, 2);
-    end
-    minimize sum(sum(vstack_1 .* c_iter .^ 2 .* E))
 
-    subject to
-    (vstack_1 + H ^ 2) .* c_iter .^ 2 .* E <= P * L_0; 
-    sum((vstack_1 + H ^ 2) .* c_iter .^ 2 .* E, 2) <= P_bar * L_0 * N;
-    q_norm(1) = norm(q(1, :) - q_init);
-    for n = 2: N
-        q_norm(n) = norm(q(n, :) - q(n - 1, :));
-    end
-    q_norm <= slot * Vm * ones(N, 1);
-    cvx_end
-    
-    assert(strcmp(cvx_status, 'Solved'));
-    q_iter = q;
-    
-    while 1
-        cvx_begin
-        cvx_solver mosek
-        variable c(K, N) nonnegative
-        variable a(1, N) nonnegative
-        maximize sum(a)
-
-        subject to
-        vstack_2 = zeros(K, N);
-        for k = 1: K
-            vstack_2(k, :) = sum((q_iter - squeeze(w(k, :, :))) .^ 2, 2);
-        end
-        c .^ 2 .* (vstack_2 + H ^ 2) .* E <= P * L_0;
-        sum(c .^ 2 .* (vstack_2 + H ^ 2) .* E, 2) <= P_bar * L_0 * N;
-
-        function_g = sum(c_iter) .^2 ./ a_iter;
-        first_order_g = 2 * sum(c_iter) ./ a_iter .* sum(c - c_iter) - (sum(c_iter)./a_iter).^2 .* (a - a_iter);
-        taylor_g = function_g + first_order_g;
-        sum(c .^ 2 .* delta) + sum(c) .^ 2 .* sigma + delta_0 <= taylor_g .* u;
-        
-%         u ./ a_iter .* sum(c_iter) .^ 2 ...
-%         + sum(c - c_iter) * 2 .* u ./ a_iter .* sum(c_iter) ...
-%         - (a - a_iter) .* u ./ a_iter .^ 2 .* sum(c_iter) .^ 2 ...
-%         - sum(c) .^ 2 .* sigma ...
-%         >= sum(c .^ 2 .* delta) + delta_0;
-        cvx_end
-        
-        assert(strcmp(cvx_status, 'Solved'));
-        gain_iter = gain;
-        gain = cvx_optval;
-        c_iter = sca_momentum * c_iter + (1 - sca_momentum) * c;
-        a_iter = sca_momentum * a_iter + (1 - sca_momentum) * a;
-        
-        if abs(gain - gain_iter) < epsilon_sca
-            break;
-        end
-    end
-    
-    gain_list = [gain_list gain];
-%     factor = sum(c_iter, 'all') / sum(sum(c_iter) .^ 2);
-%     factor = 1 ./ sum(c_iter);
-%     z_hat = factor .* (squeeze(sum(reshape(c_iter, [1 size(c_iter)]) .* z, 2)) + randn(1, N) * sqrt(delta_0));
-%     predicted = predict(Mdl, z_hat);
-%     accuracy = sum(predicted == label_test) / (L * num_test_per_class);
-%     accuracy_list = [accuracy_list accuracy];
-
-    if abs(gain - gain_iter) < epsilon
-        break;
-    end
-end
-
-save('./c.mat', 'c');
-save('./a.mat', 'a');
-save('./q.mat', 'q');
-
-%%
-figure('Position', [450 100 560 600]);
-subplot(211);
-plot(gain_list, '-o', 'MarkerFaceColor', 'b');
-title('discriminant gain');
-xlabel('iteration');
-
-subplot(212);
-plot(accuracy_list, '-o', 'MarkerFaceColor', 'r');
-title('accuracy');
-xlabel('iteration');
-
-load('./q.mat');
-figure;
-title('trajectory');
-axis([0 400 0 400]);
-grid on;
-
-start_a = [50.0 150.0];
-end_a = [50.0 350.0];
-start_b = [350.0 150.0];
-end_b = [250.0 325.0];
-center_a = [linspace(start_a(1), end_a(1), N)' linspace(start_a(2), end_a(2), N)'];
-center_b = [linspace(start_b(1), end_b(1), N)' linspace(start_b(2), end_b(2), N)'];
-
-hold on;
-plot(center_a(:, 1), center_a(:, 2));
-plot(center_b(:, 1), center_b(:, 2));
-plot(q_iter(:, 1), q_iter(:, 2), 'b');
-legend('cluster A', 'cluster B', 'UAV');
-
-init_a = w(1: num_a, 1, :);
-fin_a = w(1: num_a, end, :);
-init_b = w(num_a + 1: end, 1, :);
-fin_b = w(num_a + 1: end, end, :);
-
-scatter(init_a(:, 1), init_a(:, 2), 'HandleVisibility', 'off');
-scatter(init_b(:, 1), init_b(:, 2), 'HandleVisibility', 'off');
-scatter(fin_a(:, 1), fin_a(:, 2), 'HandleVisibility', 'off');
-scatter(fin_b(:, 1), fin_b(:, 2), 'HandleVisibility', 'off');
-
-% mac截图快捷键：control + cmd + shift + 4
+% 
+% % plot results
+% figure('Position', [450 100 560 600]);
+% subplot(211);
+% plot(gain_list, '-o', 'MarkerFaceColor', 'b');
+% title('discriminant gain');
+% xlabel('iteration');
+% 
+% subplot(212);
+% plot(accuracy_list, '-o', 'MarkerFaceColor', 'r');
+% title('accuracy');
+% xlabel('iteration');
+% 
+% load('./q.mat');
+% figure;
+% title('trajectory');
+% axis([0 400 0 400]);
+% grid on;
+% 
+% start_a = [50.0 150.0];
+% end_a = [50.0 350.0];
+% start_b = [350.0 150.0];
+% end_b = [250.0 325.0];
+% center_a = [linspace(start_a(1), end_a(1), N)' linspace(start_a(2), end_a(2), N)'];
+% center_b = [linspace(start_b(1), end_b(1), N)' linspace(start_b(2), end_b(2), N)'];
+% 
+% hold on;
+% plot(center_a(:, 1), center_a(:, 2));
+% plot(center_b(:, 1), center_b(:, 2));
+% plot(q_iter(:, 1), q_iter(:, 2), 'b');
+% legend('cluster A', 'cluster B', 'UAV');
+% 
+% init_a = w(1: num_a, 1, :);
+% fin_a = w(1: num_a, end, :);
+% init_b = w(num_a + 1: end, 1, :);
+% fin_b = w(num_a + 1: end, end, :);
+% 
+% scatter(init_a(:, 1), init_a(:, 2), 'HandleVisibility', 'off');
+% scatter(init_b(:, 1), init_b(:, 2), 'HandleVisibility', 'off');
+% scatter(fin_a(:, 1), fin_a(:, 2), 'HandleVisibility', 'off');
+% scatter(fin_b(:, 1), fin_b(:, 2), 'HandleVisibility', 'off');
+% 
+% % mac截图快捷键：control + cmd + shift + 4

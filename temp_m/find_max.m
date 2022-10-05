@@ -1,3 +1,4 @@
+% clc;
 clear;close all;
 
 load('./data/inference/mean.mat'); % mean value
@@ -8,7 +9,7 @@ L = size(mu, 1);
 N = size(mu, 2);
 K = size(delta, 1);
 
-delta_0 = 5e-8;
+delta_0 = 1e-8;
 
 u = zeros(1, N);
 for l1 = 1: L - 1
@@ -33,7 +34,7 @@ L = size(mu, 1);
 N = size(mu, 2);
 K = size(delta, 1);
 
-delta_0 = 5e-8;
+delta_0 = 1e-8;
 sca_momentum = 1 - 1e-1;
 
 c_iter = ones(K, N) * 1e-3;
