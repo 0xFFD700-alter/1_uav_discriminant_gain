@@ -33,8 +33,7 @@ gain.delta = delta;                         % variance of distortion
 gain.delta_0 = 1e-8;                        % variance of Gaussian noise
 
 % power constraints
-P_list = [9 * ones(num_a, 1); 12 * ones(num_b, 1)];
-P_list = P_list * 1;
+P_list = [15000 * ones(num_a, 1); 15000 * ones(num_b, 1)] * 1e-3;
 power.P = P_list * ones(1, dim.N);                      % peak power constraints
 power.ratio = 0.8;                                      % ratio of the average to the peak
 power.P_bar = P_list .* power.ratio;                    % average power constraints
@@ -56,7 +55,7 @@ uav.q_init = [200.0 0.0];           % UAV initial position
 c_iter = ones(dim.K, dim.N) * 1e-8;
 
 % q_iter -> init UAV trajectory
-centroid = squeeze(mean(w));
+centroid = squeeze(mean(power.w));
 q_iter = zeros(dim.N, 2);
 if norm(centroid(1, :) - uav.q_init) <= uav.slot * uav.Vm
     q_iter(1, :) = centroid(1, :);
@@ -75,27 +74,37 @@ end
 
 % opt parameter settings
 sca.momentum = 0.8;
-sca.epsilon = 1e-1;
+sca.epsilon = 1e-3;
+sca.patience = 5;
+% momentum和patience之间应该有关联，momentum大，说明对历史信息的利用率高，patience也应该大
+% 因为有momentum的存在，参数更新总是落后于当前求解器找到的最优值
+% 所以必须加上patience，让参数再多更新几轮，尽可能追上求解器找到的最优值
+
+
+% [c_iter, a_iter] = solve_c(q_iter, dim, power, gain, sca);
+% q_iter = solve_q(c_iter, dim, power, uav);
+
+
 epsilon = 1e-3;
 gain_iter = 0;
 gain_list = [];
 
 
-[c_iter, a_iter] = solve_c(q_iter, dim, power, gain, sca);
-% q_iter = solve_q(c_iter, dim, power, uav);
 
-% while 1
-%     q_iter = solve_q(c_iter, dim, power, uav);
-%     [c_iter, a_iter] = solve_c(q_iter, dim, power, gain, sca);
-%     
-%     gain_opt = sum(a_iter);
-%     gain_list = [gain_list gain_opt];
-% 
-%     if abs(gain_opt - gain_iter) < epsilon
-%         break;
-%     end
-%     gain_iter = gain_opt;
-% end
+while 1
+
+    [c_iter, a_iter] = solve_c(q_iter, dim, power, gain, sca);
+    q_iter = solve_q(c_iter, dim, power, uav);
+    
+    
+    gain_opt = sum(a_iter);
+    gain_list = [gain_list gain_opt];
+
+    if abs(gain_opt - gain_iter) < epsilon
+        break;
+    end
+    gain_iter = gain_opt;
+end
 
 
 % factor = sum(c_iter, 'all') / sum(sum(c_iter) .^ 2);

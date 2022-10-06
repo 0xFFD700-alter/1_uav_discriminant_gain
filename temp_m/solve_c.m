@@ -2,6 +2,7 @@ function [c_iter, a_iter] = solve_c(q_iter, dim, power, gain, sca)
 % solve precoding strength c with SCA
     [c_iter, a_iter] = init_sca(q_iter, dim, power, gain);
     gain_iter = sum(a_iter);
+    patience_count = 0;
     while 1
         cvx_begin
             cvx_solver mosek
@@ -29,7 +30,12 @@ function [c_iter, a_iter] = solve_c(q_iter, dim, power, gain, sca)
         a_iter = sca.momentum * a_iter + (1 - sca.momentum) * a;
 
         if abs(cvx_optval - gain_iter) <= sca.epsilon
-%             break
+            patience_count = patience_count + 1;
+            if patience_count > sca.patience
+                break
+            end
+        else
+            patience_count = 0;
         end
         gain_iter = cvx_optval;
     end
