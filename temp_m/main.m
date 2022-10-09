@@ -73,7 +73,7 @@ end
 
 
 % opt parameter settings
-sca.momentum = 0.8;
+sca.momentum = 1.0;
 sca.epsilon = 1e-3;
 sca.patience = 5;
 % momentum和patience之间应该有关联，momentum大，说明对历史信息的利用率高，patience也应该大
@@ -93,9 +93,9 @@ gain_list = [];
 
 while 1
 
-    [c_iter, a_iter] = solve_c(q_iter, dim, power, gain, sca);
-    q_iter = solve_q(c_iter, dim, power, uav);
     
+    q_iter = solve_q(c_iter, dim, power, uav);
+    [c_iter, a_iter] = solve_c(q_iter, dim, power, gain, sca);
     
     gain_opt = sum(a_iter);
     gain_list = [gain_list gain_opt];
@@ -104,6 +104,7 @@ while 1
         break;
     end
     gain_iter = gain_opt;
+
 end
 
 
@@ -115,7 +116,6 @@ end
 % accuracy_list = [accuracy_list accuracy];
 
 
-% 
 % % plot results
 % figure('Position', [450 100 560 600]);
 % subplot(211);
