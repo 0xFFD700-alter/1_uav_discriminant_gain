@@ -1,4 +1,4 @@
-function [c_iter, a_iter] = solve_c(q_iter, dim, power, gain, sca, verbose)
+function [c_iter, a_iter] = solve_c_alter(q_iter, dim, power, gain, sca, verbose)
 % solve precoding strength c with SCA
     fprintf(['\n' repmat('*', 1, 10) 'solve precoding strength c with SCA' repmat('*', 1, 10) '\n']);
     [c_iter, a_iter] = init_sca(q_iter, dim, power, gain);
@@ -15,6 +15,7 @@ function [c_iter, a_iter] = solve_c(q_iter, dim, power, gain, sca, verbose)
             cvx_solver mosek
             variable c(dim.K, dim.N) nonnegative
             variable a(1, dim.N) nonnegative
+            variable eta nonnegative
             maximize sum(a)
     
             subject to
@@ -22,14 +23,14 @@ function [c_iter, a_iter] = solve_c(q_iter, dim, power, gain, sca, verbose)
                 for k = 1: dim.K
                     vstack(k, :) = sum((q_iter - squeeze(power.w(k, :, :))) .^ 2, 2);
                 end
-                c .^ 2 .* (vstack + power.H ^ 2) .* power.E <= power.P * power.L_0;
-                sum(c .^ 2 .* (vstack + power.H ^ 2) .* power.E, 2) <= power.P_bar * power.L_0 * dim.N;
+                c .^ 2 .* (vstack + power.H ^ 2) .* power.E <= power.P * power.L_0 * eta;
+                sum(c .^ 2 .* (vstack + power.H ^ 2) .* power.E, 2) <= power.P_bar * power.L_0 * dim.N * eta;
         
                 function_g = sum(c_iter) .^ 2 ./ a_iter;
                 first_order_g = 2 * sum(c_iter) ./ a_iter .* sum(c - c_iter) ...
                                 - (sum(c_iter) ./ a_iter) .^ 2 .* (a - a_iter);
                 taylor_g = function_g + first_order_g;
-                sum(c .^ 2 .* gain.delta) + sum(c) .^ 2 .* gain.sigma + gain.delta_0 <= taylor_g .* gain.u;
+                sum(c .^ 2 .* gain.delta) + sum(c) .^ 2 .* gain.sigma + eta * gain.delta_0 <= taylor_g .* gain.u;
         cvx_end
         
         if verbose == 1
@@ -51,4 +52,3 @@ function [c_iter, a_iter] = solve_c(q_iter, dim, power, gain, sca, verbose)
         gain_iter = cvx_optval;
     end
 end
-

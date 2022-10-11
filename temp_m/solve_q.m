@@ -1,6 +1,11 @@
-function q_iter = solve_q(c_iter, dim, power, uav)
+function q_iter = solve_q(c_iter, dim, power, uav, verbose)
 % solve trajectory q
+    fprintf(['\n' repmat('*', 1, 10) 'solve trajectory q' repmat('*', 1, 10) '\n']);
     cvx_begin
+        if verbose == 0 || verbose == 1
+            cvx_quiet true
+        end
+
         cvx_solver mosek
         variable q(dim.N, 2)
         expression vstack(dim.K, dim.N)
@@ -19,7 +24,10 @@ function q_iter = solve_q(c_iter, dim, power, uav)
             end
             q_norm <= uav.slot * uav.Vm * ones(dim.N, 1);
     cvx_end
-    
+
+    if verbose == 1
+        fprintf('cvx_status: %s cvx_optval: %lf\n', [cvx_status ',' blanks(18 - length(cvx_status))], cvx_optval);
+    end
     assert(strcmp(cvx_status, 'Solved'));
     q_iter = q;
 end

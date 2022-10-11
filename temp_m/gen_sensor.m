@@ -17,8 +17,8 @@ save('./data/inference/var_sensor.mat', 'delta');
 ratio = 0.3;
 num_a = floor(K * 0.3) + 1;
 num_b = K - num_a;
-radius = 20;
-start_a = [50.0 150.0]; end_a = [50.0, 350.0]; % TODO: not staright trajectory
+radius = 15;
+start_a = [50.0 100.0]; end_a = [50.0, 350.0]; % TODO: not staright trajectory
 start_b = [350.0 150.0]; end_b = [250.0 325.0]; % TODO: not staright trajectory
 
 % random init position and reshape

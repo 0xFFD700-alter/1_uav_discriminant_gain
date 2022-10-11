@@ -9,7 +9,7 @@ L = size(mu, 1);
 N = size(mu, 2);
 K = size(delta, 1);
 
-delta_0 = 1e-8;
+delta_0 = 1e-10;
 
 u = zeros(1, N);
 for l1 = 1: L - 1
@@ -48,7 +48,7 @@ for l1 = 1: L - 1
 end
 u = u * 2 / L / (L - 1);
 
-epsilon = 1e-3;
+epsilon = 1e-5;
 gain = 0;
 % gain_list = sum(a_iter);
 
@@ -60,11 +60,12 @@ while 1
     maximize sum(a)
 
     subject to
-    u ./ a_iter .* sum(c_iter) .^ 2 ...
-    + sum(c - c_iter) * 2 .* u ./ a_iter .* sum(c_iter) ...
-    - (a - a_iter) .* u ./ a_iter .^ 2 .* sum(c_iter) .^ 2 ...
-    - sum(c) .^ 2 .* sigma ...
-    >= sum(c .^ 2 .* delta) + delta_0;
+        c <= 1e-4;
+        u ./ a_iter .* sum(c_iter) .^ 2 ...
+        + sum(c - c_iter) * 2 .* u ./ a_iter .* sum(c_iter) ...
+        - (a - a_iter) .* u ./ a_iter .^ 2 .* sum(c_iter) .^ 2 ...
+        - sum(c) .^ 2 .* sigma ...
+        >= sum(c .^ 2 .* delta) + delta_0;
     cvx_end
 
     assert(strcmp(cvx_status, 'Solved'));
