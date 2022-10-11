@@ -51,4 +51,5 @@ function [c_iter, a_iter] = solve_c_alter(q_iter, dim, power, gain, sca, verbose
         end
         gain_iter = cvx_optval;
     end
+    c_iter = c_iter / sqrt(eta);
 end

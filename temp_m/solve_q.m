@@ -26,7 +26,7 @@ function q_iter = solve_q(c_iter, dim, power, uav, verbose)
     cvx_end
 
     if verbose == 1
-        fprintf('cvx_status: %s cvx_optval: %lf\n', [cvx_status ',' blanks(18 - length(cvx_status))], cvx_optval);
+        fprintf('cvx_status: %s cvx_optval: %f \n', [cvx_status ',' blanks(18 - length(cvx_status))], cvx_optval);
     end
     assert(strcmp(cvx_status, 'Solved'));
     q_iter = q;
