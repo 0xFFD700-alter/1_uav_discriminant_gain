@@ -5,11 +5,15 @@ load('./data/inference/mean.mat'); % mean value
 load('./data/inference/var.mat'); % ground-true var
 load('./data/inference/var_sensor.mat'); % distortion var
 
+% mu = mu(:, 1:2);
+% delta = delta(1:3, 1:2);
+% sigma = sigma(:, 1:2);
+
 L = size(mu, 1);
 N = size(mu, 2);
 K = size(delta, 1);
 
-delta_0 = 1e-10;
+delta_0 = 0;
 
 u = zeros(1, N);
 for l1 = 1: L - 1

@@ -10,11 +10,19 @@ load('./Mdl.mat'); % SVM model 12-dim
 
 
 
+% data and model to perform inference tasks
+eval.L = size(mu, 1);
+eval.num_test_samples = size(z, 1);
+eval.z = z;
+eval.Mdl = Mdl;
+eval.label_test = label_test;
+
+
+
 % parameter settings
 rng(2022);
 
 % data dimensions
-L = size(mu, 1);
 dim.N = size(mu, 2);                % N -> # of feature dims (# of time slots)
 dim.K = size(delta, 1);             % K -> # of sensors
 num_a = fix(dim.K * 0.3) + 1;
@@ -22,20 +30,20 @@ num_b = dim.K - num_a;
 
 % parameters of data distribution (used to compute discriminant gain)
 gain.u = zeros(1, dim.N);
-for i = 1: L - 1
-    for j = i + 1: L
+for i = 1: eval.L - 1
+    for j = i + 1: eval.L
         gain.u = gain.u + (mu(i, :) - mu(j, :)) .^ 2;
     end
 end
-gain.u = gain.u * 2 / L / (L - 1);          % average square mean
+gain.u = gain.u * 2 / eval.L / (eval.L - 1);          % average square mean
 gain.sigma = sigma;                         % variance of ground truth
 gain.delta = delta;                         % variance of distortion
 gain.delta_0 = 1e-11;                       % variance of Gaussian noise
 
 % power constraints
-P_list = [15 * ones(num_a, 1); 15 * ones(num_b, 1)] * 1e-3;
+P_list = [10 * ones(num_a, 1); 10 * ones(num_b, 1)] * 1e-3;
 power.P = P_list * ones(1, dim.N);                      % peak power constraints
-power.ratio = 0.5;                                      % ratio of the average to the peak
+power.ratio = 0.8;                                      % ratio of the average to the peak
 power.P_bar = P_list .* power.ratio;                    % average power constraints
 power.L_0 = 1e-4;                                       % channel fading at reference distance (1m)
 power.E = gain.delta + gain.sigma + mean(mu.^2, 1);     % expectation of signal power
@@ -72,51 +80,50 @@ end
 
 
 
-% opt parameter settings
-sca.momentum = 0.8;
-sca.epsilon = 1e-3;
-sca.patience = 10;
+% sca opt parameter settings
+sca.momentum = 0.5;
+sca.epsilon = 1e-2;
+sca.patience = 3;
 % momentum和patience之间应该有关联，momentum大，说明对历史信息的利用率高，patience也应该大
-% 因为有momentum的存在，参数更新总是落后于当前求解器找到的最优�??
-% �?以必须加上patience，让参数再多更新几轮，尽可能追上求解器找到的�?优�??
+% 因为有momentum的存在，参数更新总是落后于当前求解器找到的最优参数
+% 所以必须加上patience，让参数再多更新几轮，尽可能追上求解器找到的最优参数
 
-
-% [c_iter, a_iter] = solve_c(q_iter, dim, power, gain, sca, 1);
-% q_iter = solve_q(c_iter, dim, power, uav, 1);
-
-
+% opt parameter settings
 epsilon = 1e-3;
+patience = 5;
+
+% auxiliary variables for alternating opt
 gain_iter = 0;
 gain_list = [];
+accuracy_list = [];
+gain_fun = @(x) sum(sum(x) .^ 2 .* gain.u ./ (gain.sigma .* sum(x) .^ 2 + sum(x .^ 2 .* gain.delta) + gain.delta_0));
+patience_count = 0;
+repeat = 20;
 
 
-% [c_iter, a_iter] = solve_c(q_iter, dim, power, gain, sca, 1);
-% [c_iter, a_iter] = solve_c_alter(q_iter, dim, power, gain, sca, 1);
-fun = @(x) sum(sum(x) .^ 2 .* gain.u ./ (gain.sigma .* sum(x) .^ 2 + sum(x .^ 2 .* gain.delta) + gain.delta_0));
 
 while 1
+    c_iter = solve_c_alter(q_iter, dim, power, gain, sca, 1);
     
-    [c_iter, a_iter] = solve_c_alter(q_iter, dim, power, gain, sca, 1);
-    
-    gain_opt = sum(a_iter);
+    gain_opt = gain_fun(c_iter);
     gain_list = [gain_list gain_opt];
+    accuracy = inference(c_iter, dim, gain, eval, repeat);
+    accuracy_list = [accuracy_list accuracy];
 
-    if abs(gain_opt - gain_iter) < epsilon
-        break;
+    fprintf('\naccuracy: %f, gain_opt: %f\n', accuracy, gain_opt);
+
+    if abs(gain_opt - gain_iter) <= epsilon
+        patience_count = patience_count + 1;
+        if patience_count > patience
+            break
+        end
+    else
+        patience_count = 0;
     end
+
     gain_iter = gain_opt;
-    
     q_iter = solve_q(c_iter, dim, power, uav, 1);
-
 end
-
-
-% factor = sum(c_iter, 'all') / sum(sum(c_iter) .^ 2);
-% factor = 1 ./ sum(c_iter);
-% z_hat = factor .* (squeeze(sum(reshape(c_iter, [1 size(c_iter)]) .* z, 2)) + randn(1, N) * sqrt(delta_0));
-% predicted = predict(Mdl, z_hat);
-% accuracy = sum(predicted == label_test) / (L * num_test_per_class);
-% accuracy_list = [accuracy_list accuracy];
 
 
 % % plot results

@@ -1,6 +1,8 @@
 function q_iter = solve_q(c_iter, dim, power, uav, verbose)
 % solve trajectory q
-    fprintf(['\n' repmat('*', 1, 10) 'solve trajectory q' repmat('*', 1, 10) '\n']);
+    if verbose == 1
+        fprintf(['\n' repmat('*', 1, 10) 'solve trajectory q' repmat('*', 1, 10) '\n']);
+    end
     cvx_begin
         if verbose == 0 || verbose == 1
             cvx_quiet true

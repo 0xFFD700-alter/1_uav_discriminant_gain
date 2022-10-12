@@ -1,6 +1,8 @@
-function [c_iter, a_iter] = solve_c_alter(q_iter, dim, power, gain, sca, verbose)
+function c_iter = solve_c_alter(q_iter, dim, power, gain, sca, verbose)
 % solve precoding strength c with SCA
-    fprintf(['\n' repmat('*', 1, 10) 'solve precoding strength c with SCA' repmat('*', 1, 10) '\n']);
+    if verbose == 1
+        fprintf(['\n' repmat('*', 1, 10) 'solve precoding strength c with SCA' repmat('*', 1, 10) '\n']);
+    end
     [c_iter, a_iter] = init_sca(q_iter, dim, power, gain);
     gain_iter = sum(a_iter);
     patience_count = 0;
