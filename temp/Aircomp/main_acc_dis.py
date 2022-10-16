@@ -73,7 +73,7 @@ def SCA_for_two_PCA(num_antenna,power_tx,channel_gain,num_class,idx,num_device):
         for idx_class_a in range(num_class):
             for idx_class_b in range(idx_class_a):
                 for idx_m in range(2):
-                    constrains += [(cp.sum_squares(cp.multiply(c_zf, np.sqrt(var_dist[:, 2 * idx + idx_m].reshape(-1, 1)))) + var_comm_noise * cp.sum_squares(f_vec)) + (np.sum(c_zf)) ** 2 * var_class[2 * idx + idx_m] - np.sum(c_zf_init) ** 2 * ((mean_class[idx_class_a, 2 * idx + idx_m] - mean_class[idx_class_b, 2 * idx + idx_m]) ** 2 / alpha_init[int(idx_class_a * (idx_class_a-1) / 2) + idx_class_b, idx_m]) - 2 * (mean_class[idx_class_a, 2 * idx + idx_m] - mean_class[idx_class_b, 2 * idx + idx_m]) ** 2 * np.sum(c_zf_init) / alpha_init[int(idx_class_a * (idx_class_a-1) / 2) + idx_class_b, idx_m] * cp.sum(c_zf - c_zf_init) + (np.sum(c_zf_init) * (mean_class[idx_class_a, 2 * idx + idx_m] - mean_class[idx_class_b, 2 * idx + idx_m]) / alpha_init[int(idx_class_a * (idx_class_a-1) / 2) + idx_class_b, idx_m]) ** 2 * (alpha[idx_m][int(idx_class_a * (idx_class_a-1) / 2) + idx_class_b] - alpha_init[int(idx_class_a * (idx_class_a-1) / 2) + idx_class_b, idx_m]) <= 0]
+                    constrains += [(cp.sum_squares(cp.multiply(c_zf, np.sqrt(var_dist[:, 2 * idx + idx_m].reshape(-1, 1)))) + var_comm_noise * cp.sum_squares(f_vec)) + (cp.sum(c_zf)) ** 2 * var_class[2 * idx + idx_m] - np.sum(c_zf_init) ** 2 * ((mean_class[idx_class_a, 2 * idx + idx_m] - mean_class[idx_class_b, 2 * idx + idx_m]) ** 2 / alpha_init[int(idx_class_a * (idx_class_a-1) / 2) + idx_class_b, idx_m]) - 2 * (mean_class[idx_class_a, 2 * idx + idx_m] - mean_class[idx_class_b, 2 * idx + idx_m]) ** 2 * np.sum(c_zf_init) / alpha_init[int(idx_class_a * (idx_class_a-1) / 2) + idx_class_b, idx_m] * cp.sum(c_zf - c_zf_init) + (np.sum(c_zf_init) * (mean_class[idx_class_a, 2 * idx + idx_m] - mean_class[idx_class_b, 2 * idx + idx_m]) / alpha_init[int(idx_class_a * (idx_class_a-1) / 2) + idx_class_b, idx_m]) ** 2 * (alpha[idx_m][int(idx_class_a * (idx_class_a-1) / 2) + idx_class_b] - alpha_init[int(idx_class_a * (idx_class_a-1) / 2) + idx_class_b, idx_m]) <= 0]
 
         for idx_device in range(num_device):
             constrains += [c_zf[idx_device] >= 0]
@@ -104,7 +104,7 @@ def SCA_for_two_PCA(num_antenna,power_tx,channel_gain,num_class,idx,num_device):
 
         diff = abs(prob.value - last_value)
         last_value = prob.value
-        #print("The discriminant gain after {}-th interation is: {}".format(count, last_value))
+        print("The discriminant gain after {}-th interation is: {}".format(count, last_value))
         count += 1
 
     #print("The discriminant gain after optimization is: {}".format(prob.value))
@@ -122,7 +122,7 @@ def model_inference(data, label, model):
 
 
 #####the below is computating the accuracy with the change of power#####
-power_mdB = np.linspace(-10,13,200)
+power_mdB = np.linspace(0,20,5)
 power_list = 10 ** ( (power_mdB-30) / 10 )
 #power_list = np.linspace(0.0001,10 ** (-1.7),40)
 svm_accuracy_init_list = np.zeros((len(power_list), 1))
@@ -155,7 +155,7 @@ for i in range(len(power_list)):
     print("{}-th interation : discriminant_gain{}, svm_accuracy{}, mlp_accuracy{}".format(i, discriminant_gain_list[i],svm_accuracy_init_list[i],mlp_accuracy_init_list[i]))
 
 
-np.save('./save_model/save_results/svm_acc_dis.npy', svm_accuracy_init_list)
-np.save('./save_model/save_results/mlp_acc_dis.npy', mlp_accuracy_init_list)
-np.save('./save_model/save_results/discriminant_gain_accuracy.npy', discriminant_gain_list)
+# np.save('./save_model/save_results/svm_acc_dis.npy', svm_accuracy_init_list)
+# np.save('./save_model/save_results/mlp_acc_dis.npy', mlp_accuracy_init_list)
+# np.save('./save_model/save_results/discriminant_gain_accuracy.npy', discriminant_gain_list)
 
