@@ -20,7 +20,7 @@ eval.label_test = label_test;
 
 
 % parameter settings
-rng(2022);
+rng(3407);
 
 % data dimensions
 dim.N = size(mu, 2);                % N -> # of feature dims (# of time slots)
@@ -38,7 +38,7 @@ end
 gain.u = gain.u * 2 / eval.L / (eval.L - 1);          % average square mean
 gain.sigma = sigma;                         % variance of ground truth
 gain.delta = delta;                         % variance of distortion
-gain.delta_0 = 1e-11;                       % variance of Gaussian noise
+gain.delta_0 = 1e-10;                       % variance of Gaussian noise
 
 % power constraints
 P_list = [6 * ones(num_a, 1); 6 * ones(num_b, 1)] * 1e-3;
@@ -59,9 +59,6 @@ uav.q_init = [200.0 0.0];           % UAV initial position
 
 % alternating opt initialization
 
-% c_iter -> init c
-c_iter = ones(dim.K, dim.N) * 1e-6;
-
 % q_iter -> init UAV trajectory
 centroid = squeeze(mean(power.w));
 q_iter = zeros(dim.N, 2);
@@ -78,19 +75,25 @@ for i = 2:dim.N
     end
 end
 
+% c_iter -> init c
+c_iter = ones(dim.K, dim.N) * 1e-5;
+% vstack = zeros(dim.K, dim.N);
+% for k = 1:dim.K
+%     vstack(k, :) = sum((q_iter - squeeze(power.w(k, :, :))) .^ 2, 2);
+% end
+% c_iter = sqrt(power.P .* power.L_0 ./ power.E ./ (vstack + power.H ^ 2) .* power.ratio);
+
 
 
 % sca opt parameter settings
 sca.momentum = 0.8;
 sca.epsilon = 1e-3;
 sca.patience = 5;
-% momentum和patience之间应该有关联，momentum大，说明对历史信息的利用率高，patience也应该大
-% 因为有momentum的存在，参数更新总是落后于当前求解器找到的最优参�?
-% �?以必须加上patience，让参数再多更新几轮，尽可能追上求解器找到的�?优参�?
+
 
 % opt parameter settings
 epsilon = 1e-3;
-patience = 5;
+patience = 10;
 
 % auxiliary variables for alternating opt
 gain_iter = 0;
@@ -98,18 +101,44 @@ gain_list = [];
 accuracy_list = [];
 gain_fun = @(x) sum(sum(x) .^ 2 .* gain.u ./ (gain.sigma .* sum(x) .^ 2 + sum(x .^ 2 .* gain.delta) + gain.delta_0));
 patience_count = 0;
-repeat = 20;
+repeat = 5;
+
+% q_iter = solve_q_alter(c_iter, eta_iter, dim, power, uav, 1);
+
+% while 1
+%     c_iter = solve_c_alter(q_iter, eta_iter, dim, power, gain, sca, 1);
+%     
+%     gain_opt = gain_fun(c_iter ./ sqrt(eta_iter));
+%     gain_list = [gain_list gain_opt];
+%     accuracy = inference(c_iter ./ sqrt(eta_iter), dim, gain, eval, repeat);
+%     accuracy_list = [accuracy_list accuracy];
+% 
+%     fprintf('\naccuracy: %f, gain_opt: %f\n', accuracy, gain_opt);
+% 
+%     if abs(gain_opt - gain_iter) <= epsilon
+%         patience_count = patience_count + 1;
+%         if patience_count > patience
+%             break
+%         end
+%     else
+%         patience_count = 0;
+%     end
+% 
+%     gain_iter = gain_opt;
+%     eta_iter = solve_eta(q_iter, c_iter, dim, power) + 1;
+%     q_iter = solve_q_alter(c_iter, eta_iter, dim, power, uav, 1);
+% end
 
 while 1
-    c_iter = solve_c_alter(q_iter, dim, power, gain, sca, 1);
     
+    [c_iter, eta_iter] = solve_c_once(q_iter, dim, power, gain, 1);
+
     gain_opt = gain_fun(c_iter);
     gain_list = [gain_list gain_opt];
     accuracy = inference(c_iter, dim, gain, eval, repeat);
     accuracy_list = [accuracy_list accuracy];
 
-    fprintf('\naccuracy: %f, gain_opt: %f\n', accuracy, gain_opt);
-
+    fprintf('accuracy: %f, gain_opt: %f\n', accuracy, gain_opt);
     if abs(gain_opt - gain_iter) <= epsilon
         patience_count = patience_count + 1;
         if patience_count > patience
@@ -120,9 +149,8 @@ while 1
     end
 
     gain_iter = gain_opt;
-    q_iter = solve_q(c_iter, dim, power, uav, 1);
+    q_iter = solve_q_alter(c_iter, eta_iter, dim, power, uav, 1);
 end
-
 
 % % plot results
 % figure('Position', [450 100 560 600]);

@@ -28,9 +28,9 @@ for radar = 1:num_radar
 end
 
 %%
-data_pca_normed = (data_pca - mean(data_pca, [2 3])) ./ std(data_pca, 0, [2 3]) + mean(data_pca, [2 3]);
+data_pca_normed = (data_pca - mean(data_pca, [2 3])) ./ std(data_pca, 0, [1 2 3]) + mean(data_pca, [2 3]);
 mu = squeeze(mean(data_pca_normed, [2 3]));
-sigma = ones(1, pca_dim);
+sigma = reshape(var(data_pca_normed, 0, [1 2 3]), 1, pca_dim);
 
 label_train = reshape(repmat(char((1:num_class) + abs('0'))', [1, num_train * num_radar]), num_class * num_train * num_radar, 1);
 label_test = reshape(repmat(char((1:num_class) + abs('0'))', [1, (1000 - num_train) * num_radar]), num_class * (1000 - num_train) * num_radar, 1);
