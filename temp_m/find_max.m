@@ -22,7 +22,7 @@ for l1 = 1: L - 1
     end
 end
 u = u * 2 / L / (L - 1);
-fun = @(x) -sum(sum(reshape(x, [K N])) .^ 2 .* u ...
+fun = @(x) sum(sum(reshape(x, [K N])) .^ 2 .* u ...
 ./ (sigma .* sum(reshape(x, [K N])) .^ 2 + sum(reshape(x, [K N]) .^ 2 .* delta) + delta_0));
 
 nvars = K * N;

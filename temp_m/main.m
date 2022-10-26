@@ -56,35 +56,6 @@ uav.Vm = 20.0;                      % UAV maximum speed
 uav.q_init = [200.0 0.0];           % UAV initial position
 
 
-
-% alternating opt initialization
-
-% q_iter -> init UAV trajectory
-centroid = squeeze(mean(power.w));
-q_iter = zeros(dim.N, 2);
-if norm(centroid(1, :) - uav.q_init) <= uav.slot * uav.Vm
-    q_iter(1, :) = centroid(1, :);
-else
-    q_iter(1, :) = uav.q_init + (centroid(1, :) - uav.q_init) * uav.slot * uav.Vm / norm(centroid(1, :) - uav.q_init);
-end
-for i = 2:dim.N
-    if norm(centroid(i, :) - q_iter(i - 1, :)) <= uav.slot * uav.Vm
-        q_iter(i, :) = centroid(i, :);
-    else
-        q_iter(i, :) = q_iter(i - 1, :) + (centroid(i, :) - q_iter(i - 1, :)) * uav.slot * uav.Vm / norm(centroid(1, :) - q_iter(i - 1, :));
-    end
-end
-
-% c_iter -> init c
-c_iter = ones(dim.K, dim.N) * 1e-5;
-% vstack = zeros(dim.K, dim.N);
-% for k = 1:dim.K
-%     vstack(k, :) = sum((q_iter - squeeze(power.w(k, :, :))) .^ 2, 2);
-% end
-% c_iter = sqrt(power.P .* power.L_0 ./ power.E ./ (vstack + power.H ^ 2) .* power.ratio);
-
-
-
 % sca opt parameter settings
 sca.momentum = 0.8;
 sca.epsilon = 1e-3;
@@ -92,7 +63,7 @@ sca.patience = 5;
 
 
 % opt parameter settings
-epsilon = 1e-3;
+epsilon = 1e-5;
 patience = 10;
 
 % auxiliary variables for alternating opt
@@ -129,10 +100,44 @@ repeat = 5;
 %     q_iter = solve_q_alter(c_iter, eta_iter, dim, power, uav, 1);
 % end
 
-while 1
-    
-    [c_iter, eta_iter] = solve_c_once(q_iter, dim, power, gain, 1);
 
+
+% alternating opt initialization
+
+% q_iter -> init UAV trajectory
+centroid = squeeze(mean(power.w));
+q_iter = zeros(dim.N, 2);
+if norm(centroid(1, :) - uav.q_init) <= uav.slot * uav.Vm
+    q_iter(1, :) = centroid(1, :);
+else
+    q_iter(1, :) = uav.q_init + (centroid(1, :) - uav.q_init) * uav.slot * uav.Vm / norm(centroid(1, :) - uav.q_init);
+end
+for i = 2:dim.N
+    if norm(centroid(i, :) - q_iter(i - 1, :)) <= uav.slot * uav.Vm
+        q_iter(i, :) = centroid(i, :);
+    else
+        q_iter(i, :) = q_iter(i - 1, :) + (centroid(i, :) - q_iter(i - 1, :)) * uav.slot * uav.Vm / norm(centroid(1, :) - q_iter(i - 1, :));
+    end
+end
+
+[c_iter, a_iter] = init_sca(q_iter, dim, power, gain);
+
+% c_iter -> init c
+% c_iter = ones(dim.K, dim.N) * 1e-5;
+% vstack = zeros(dim.K, dim.N);
+% for k = 1:dim.K
+%     vstack(k, :) = sum((q_iter - squeeze(power.w(k, :, :))) .^ 2, 2);
+% end
+% c_iter = sqrt(power.P .* power.L_0 ./ power.E ./ (vstack + power.H ^ 2) .* power.ratio);
+
+
+
+while 1
+    [c, a] = solve_c_once(q_iter, c_iter, a_iter, dim, power, gain, 1);
+    
+    c_iter = sca.momentum * c_iter + (1 - sca.momentum) * c;
+    a_iter = sca.momentum * a_iter + (1 - sca.momentum) * a;
+    
     gain_opt = gain_fun(c_iter);
     gain_list = [gain_list gain_opt];
     accuracy = inference(c_iter, dim, gain, eval, repeat);
@@ -149,7 +154,7 @@ while 1
     end
 
     gain_iter = gain_opt;
-    q_iter = solve_q_alter(c_iter, eta_iter, dim, power, uav, 1);
+    q_iter = solve_q_once(c_iter, dim, power, uav, 1);
 end
 
 % % plot results

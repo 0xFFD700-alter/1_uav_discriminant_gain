@@ -1,10 +1,4 @@
-function [c_iter, eta_iter] = solve_c_once(q_iter, dim, power, gain, verbose)
-% solve precoding strength c with SCA
-%     if verbose == 1
-%         fprintf(['\n' repmat('*', 1, 10) 'solve precoding strength c with SCA' repmat('*', 1, 10) '\n']);
-%     end
-    [c_iter, a_iter] = init_sca(q_iter, dim, power, gain);
-%     gain_iter = sum(a_iter);
+function [c_iter, a_iter] = solve_c_once(q_iter, c_iter, a_iter, dim, power, gain, verbose)
     cvx_begin
         if verbose == 0 || verbose == 1
             cvx_quiet true
@@ -36,7 +30,7 @@ function [c_iter, eta_iter] = solve_c_once(q_iter, dim, power, gain, verbose)
         end
         assert(strcmp(cvx_status, 'Solved'));
         c_iter = c / sqrt(eta);
-        eta_iter = eta;
+        a_iter = a;
 
 %     patience_count = 0;
 %     iter_count = 0;

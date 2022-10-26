@@ -258,47 +258,41 @@ while True:
 # plt.bar([k for k in range(N)], alpha_iter)
 
 #%%
+import numpy as np
+a = -100
+R = [[0, 1, 1, a],
+     [1, 0, a, 0],
+     [0, 1, 1, 1],
+     [0, a, 1, 0]]
+N = len(R)
+M = len(R[0])
+# R = np.array(R)
 
-# s = [1, 1, 1, 1, 1, 2, 2, 2, 2]
+dp = np.zeros((N + 1, M + 1, N + 1, M + 1))
+for i in range(1, N + 1):
+    for j in range(1, M + 1):
+        for k in range(1, N + 1):
+            for l in range(1, M + 1):
+                dp[i, j, k, l] = max(dp[i - 1, j, k - 1, l],
+                                     dp[i, j - 1, k - 1, l],
+                                     dp[i - 1, j, k, l - 1],
+                                     dp[i, j - 1, k, l - 1]) + R[i - 1][j - 1] + R[k - 1][l - 1]
+                if i == k and j == l:
+                    dp[i, j, k, l] -= R[i - 1][j - 1]
+
+print(dp[N, M, N, M])
 
 
-# def invoke(a, b):
-#     return a == b
+dp = np.zeros((N + 1, M + 1, N + 1, M + 1))
+for i in range(1, N + 1):
+    for j in range(1, M + 1):
+        for k in range(N - 1, -1, -1):
+            for l in range(M - 1, -1, -1):
+                dp[i, j, k, l] = max(dp[i - 1, j, k + 1, l],
+                                     dp[i, j - 1, k + 1, l],
+                                     dp[i - 1, j, k, l + 1],
+                                     dp[i, j - 1, k, l + 1]) + R[i - 1][j - 1] + R[k][l]
+                if i - 1 == k and j - 1 == l:
+                    dp[i, j, k, l] -= R[i - 1][j - 1]
 
-# def solution(n, s):
-#     '''
-#     returns:
-#     m - # of cards that are equivalent
-#     c - a card that has m copies
-#     '''
-#     if n == 1:
-#         return s[0]
-#     c1 = solution(n // 2, s[:n // 2])
-#     c2 = solution(n - n // 2, s[n // 2:])
-    
-#     return merge(c1, c2, n, s)
-
-
-# def merge(c1, c2, n, s):
-#     '''
-#     invoke(a, b):
-#     test if card a and card b are equivalent
-#     Python list object:
-#     s1 + s2 do the same thing as s1 \cup s2
-#     '''
-#     count_c1 = 0
-#     count_c2 = 0
-#     for c in s:
-#         if c1 and invoke(c1, c) == True:
-#             count_c1 += 1
-#         if c2 and invoke(c2, c) == True:
-#             count_c2 += 1
-    
-#     if count_c1 > n / 2:
-#         return c1
-#     if count_c2 > n / 2:
-#         return c2
-    
-#     return None
-    
-# ans = solution(len(s), s)
+print(dp[N, M, 0, 0])
