@@ -6,17 +6,17 @@ function q_iter = solve_q_once(c_iter, dim, power, uav, verbose)
 
         cvx_solver mosek
         variable q(dim.N, 2) nonnegative
-        variable eta nonnegative
+%         variable eta nonnegative
         expression vstack(dim.K, dim.N)
         expression q_norm(dim.N, 1)
         for k = 1: dim.K
             vstack(k, :) = sum((q - squeeze(power.w(k, :, :))) .^ 2, 2);
         end
-        minimize eta%sum(sum((vstack + power.H ^ 2).* c_iter .^ 2 .* power.E))
+        minimize sum(sum((vstack + power.H ^ 2).* c_iter .^ 2 .* power.E))
     
         subject to
-            (vstack + power.H ^ 2) .* c_iter .^ 2 .* power.E <= eta * power.P * power.L_0; 
-            sum((vstack + power.H ^ 2) .* c_iter .^ 2 .* power.E, 2) <= eta * power.P_bar * power.L_0 * dim.N;
+            (vstack + power.H ^ 2) .* c_iter .^ 2 .* power.E <= power.P * power.L_0; 
+            sum((vstack + power.H ^ 2) .* c_iter .^ 2 .* power.E, 2) <= power.P_bar * power.L_0 * dim.N;
             q_norm(1) = norm(q(1, :) - uav.q_init);
             for n = 2: dim.N
                 q_norm(n) = norm(q(n, :) - q(n - 1, :));

@@ -43,9 +43,9 @@ gain.delta_0 = 1e-10;                       % variance of Gaussian noise
 % power constraints
 P_list = [6 * ones(num_a, 1); 6 * ones(num_b, 1)] * 1e-3;
 power.P = P_list * ones(1, dim.N);                      % peak power constraints
-power.ratio = 0.8;                                      % ratio of the average to the peak
+power.ratio = 0.5;                                      % ratio of the average to the peak
 power.P_bar = P_list .* power.ratio;                    % average power constraints
-power.L_0 = 1e-4;                                       % channel fading at reference distance (1m)
+power.L_0 = 1e03;                                       % channel fading at reference distance (1m)
 power.E = gain.delta + gain.sigma + mean(mu.^2, 1);     % expectation of signal power
 power.H = 100.0;                                        % UAV hovering altitude
 power.w = w;                                            % trajectory of sensors
@@ -57,9 +57,9 @@ uav.q_init = [200.0 0.0];           % UAV initial position
 
 
 % sca opt parameter settings
-sca.momentum = 0.8;
-sca.epsilon = 1e-3;
-sca.patience = 5;
+% sca.momentum = 0.8;
+% sca.epsilon = 1e-3;
+% sca.patience = 5;
 
 
 % opt parameter settings
@@ -121,26 +121,22 @@ for i = 2:dim.N
 end
 
 [c_iter, a_iter] = init_sca(q_iter, dim, power, gain);
-
-% c_iter -> init c
-% c_iter = ones(dim.K, dim.N) * 1e-5;
-% vstack = zeros(dim.K, dim.N);
-% for k = 1:dim.K
-%     vstack(k, :) = sum((q_iter - squeeze(power.w(k, :, :))) .^ 2, 2);
-% end
-% c_iter = sqrt(power.P .* power.L_0 ./ power.E ./ (vstack + power.H ^ 2) .* power.ratio);
-
+gain_opt = gain_fun(c_iter);
+gain_list = [gain_list gain_opt];
+accuracy = inference(c_iter, dim, gain, power, eval, repeat);
+accuracy_list = [accuracy_list accuracy];
 
 
 while 1
+    q_iter = solve_q_once(c_iter, dim, power, uav, 1);
     [c, a] = solve_c_once(q_iter, c_iter, a_iter, dim, power, gain, 1);
     
-    c_iter = sca.momentum * c_iter + (1 - sca.momentum) * c;
-    a_iter = sca.momentum * a_iter + (1 - sca.momentum) * a;
+%     c_iter = sca.momentum * c_iter + (1 - sca.momentum) * c;
+%     a_iter = sca.momentum * a_iter + (1 - sca.momentum) * a;
     
     gain_opt = gain_fun(c_iter);
     gain_list = [gain_list gain_opt];
-    accuracy = inference(c_iter, dim, gain, eval, repeat);
+    accuracy = inference(c_iter, dim, gain, power, eval, repeat);
     accuracy_list = [accuracy_list accuracy];
 
     fprintf('accuracy: %f, gain_opt: %f\n', accuracy, gain_opt);
@@ -154,7 +150,6 @@ while 1
     end
 
     gain_iter = gain_opt;
-    q_iter = solve_q_once(c_iter, dim, power, uav, 1);
 end
 
 % % plot results
@@ -197,5 +192,3 @@ end
 % scatter(init_b(:, 1), init_b(:, 2), 'HandleVisibility', 'off');
 % scatter(fin_a(:, 1), fin_a(:, 2), 'HandleVisibility', 'off');
 % scatter(fin_b(:, 1), fin_b(:, 2), 'HandleVisibility', 'off');
-% 
-% % mac截图快捷键：control + cmd + shift + 4
