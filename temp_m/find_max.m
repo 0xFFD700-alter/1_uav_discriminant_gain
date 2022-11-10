@@ -13,7 +13,7 @@ L = size(mu, 1);
 N = size(mu, 2);
 K = size(delta, 1);
 
-delta_0 = 0;
+delta_0 = 1e-9;
 
 u = zeros(1, N);
 for l1 = 1: L - 1

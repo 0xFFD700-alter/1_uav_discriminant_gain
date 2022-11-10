@@ -1,8 +1,6 @@
-function q_iter = solve_q(c_iter, dim, power, uav, verbose)
+function q_iter = solve_q(c_iter, dim, power, uav, scale, verbose)
 % solve trajectory q
-    if verbose == 1
-        fprintf(['\n' repmat('*', 1, 10) 'solve trajectory q' repmat('*', 1, 10) '\n']);
-    end
+    fprintf(['\n' repmat('*', 1, 10) 'solve trajectory q' repmat('*', 1, 10) '\n']);
     cvx_begin
         if verbose == 0 || verbose == 1
             cvx_quiet true
@@ -18,8 +16,8 @@ function q_iter = solve_q(c_iter, dim, power, uav, verbose)
         minimize sum(sum((vstack + power.H ^ 2).* c_iter .^ 2 .* power.E))
     
         subject to
-            (vstack + power.H ^ 2) .* c_iter .^ 2 .* power.E <= power.P * power.L_0; 
-            sum((vstack + power.H ^ 2) .* c_iter .^ 2 .* power.E, 2) <= power.P_bar * power.L_0 * dim.N;
+            (vstack + power.H ^ 2) <= power.P * power.L_0 ./ (c_iter .^ 2 .* power.E) * scale; 
+            sum((vstack + power.H ^ 2) .* c_iter .^ 2 .* power.E, 2) <= power.P_bar * power.L_0 * dim.N * scale;
             q_norm(1) = norm(q(1, :) - uav.q_init);
             for n = 2: dim.N
                 q_norm(n) = norm(q(n, :) - q(n - 1, :));
