@@ -47,21 +47,22 @@ for i = 1:length(p_list)
     acc_power_plot(3, i) = acc;
 end
 
-% figure; % discriminant gain
-% grid on;
-% plot(p_list(1:7), dis_power_plot(1, 1:7)); hold on;
-% plot(p_list(1:7), dis_power_plot(2, 1:7));
-% % plot(p_list, dis_power_plot(3, :));
-% % legend('alt', 'fly-hover', 'fix');
-% legend('alt', 'fly-hover','Location','SouthEast');
-% 
-% figure; % accuracy
-% grid on;
-% plot(p_list(1:7), acc_power_plot(1, 1:7)); hold on;
-% plot(p_list(1:7), acc_power_plot(2, 1:7));
-% % plot(p_list, acc_power_plot(3, :));
-% % legend('alt', 'fly-hover', 'fix');
-% legend('alt', 'fly-hover','Location','SouthEast');
+%%
+end_idx = 8;
+
+figure; % discriminant gain
+grid on;
+plot(p_list(1:end_idx), dis_power_plot(1, 1:end_idx)); hold on;
+plot(p_list(1:end_idx), dis_power_plot(2, 1:end_idx));
+plot(p_list(1:end_idx), dis_power_plot(3, 1:end_idx));
+legend('alt', 'fly-hover', 'fix', 'Location', 'SouthEast');
+
+figure; % accuracy
+grid on;
+plot(p_list(1:end_idx), acc_power_plot(1, 1:end_idx)); hold on;
+plot(p_list(1:end_idx), acc_power_plot(2, 1:end_idx));
+plot(p_list(1:end_idx), acc_power_plot(3, 1:end_idx));
+legend('alt', 'fly-hover', 'fix', 'Location', 'SouthEast');
 
 %%
 % % plot results
