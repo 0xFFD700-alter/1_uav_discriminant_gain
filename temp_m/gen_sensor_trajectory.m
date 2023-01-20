@@ -1,59 +1,59 @@
 function gen_sensor_trajectory(K, N)
-    rng(2022);
-    num_a = floor(K * 0.3) + 1;
+    rng(2020);
+    num_a = floor(K * 0.5);
     num_b = K - num_a;
-    radius = 30;
-    start_a = [50.0 100.0];
-    start_b = [350.0 150.0];
+    radius = 25;
+    start_a = [50.0 50.0];
+    start_b = [450.0 50.0];
 
     % straight center position
-    end_a = [50.0, 350.0];
-    end_b = [250.0 325.0];
-    centroid_a(:, 1) = linspace(start_a(1), end_a(1), N);
-    centroid_a(:, 2) = linspace(start_a(2), end_a(2), N);
-    centroid_b(:, 1) = linspace(start_b(1), end_b(1), N);
-    centroid_b(:, 2) = linspace(start_b(2), end_b(2), N);
+%     end_a = [50.0, 350.0];
+%     end_b = [250.0 325.0];
+%     centroid_a(:, 1) = linspace(start_a(1), end_a(1), N);
+%     centroid_a(:, 2) = linspace(start_a(2), end_a(2), N);
+%     centroid_b(:, 1) = linspace(start_b(1), end_b(1), N);
+%     centroid_b(:, 2) = linspace(start_b(2), end_b(2), N);
 
     % random center position
-    % centroid_a = [start_a; zeros(N - 1, 2)];
-    % centroid_b = [start_b; zeros(N - 1, 2)];
-    % ragion = [0, 0; 400, 400];
-    % 
-    % for i = 2:N
-    %     v = 1 + 7 * rand;
-    %     angle = rand * pi/2;
-    %     x = centroid_a(i - 1, 1) + v * 50 / N * cos(angle);
-    %     y = centroid_a(i - 1, 2) + v * 50 / N * sin(angle);
-    %     if   x - radius < region(1,1) 
-    %          angle = rand * pi - pi/2 ;
-    %     elseif x + radius > region(2,1) 
-    %          angle =  rand * pi + pi/2;
-    %     elseif y - radius < region(1,2) 
-    %          angle =  rand * pi;
-    %     elseif y + radius > region(2,2)
-    %          angle =  -rand * pi;             
-    %     end
-    %     centroid_a(i, 1) = centroid_a(i - 1, 1) + v * 50 / N * cos(angle);
-    %     centroid_a(i, 2) = centroid_a(i - 1, 2) + v * 50 / N * sin(angle);
-    % end
-    % 
-    % for i = 2:N
-    %     v = 1 + 7 * rand;
-    %     angle = pi/2 + rand * pi/2;
-    %     x = centroid_b(i - 1, 1) + v * 50 / N * cos(angle);
-    %     y = centroid_b(i - 1, 2) + v * 50 / N * sin(angle);
-    %     if   x - radius < region(1,1) 
-    %          angle = rand * pi - pi/2 ;
-    %     elseif x + radius > region(2,1) 
-    %          angle =  rand * pi + pi/2;
-    %     elseif y - radius < region(1,2) 
-    %          angle =  rand * pi;
-    %     elseif y + radius > region(2,2)
-    %          angle =  -rand * pi;             
-    %     end
-    %     centroid_b(i, 1) = centroid_b(i - 1, 1) + v * 50 / N * cos(angle);
-    %     centroid_b(i, 2) = centroid_b(i - 1, 2) + v * 50 / N * sin(angle);
-    % end
+    centroid_a = [start_a; zeros(N - 1, 2)];
+    centroid_b = [start_b; zeros(N - 1, 2)];
+    region = [0 0; 500 500];
+    
+    for i = 2:N
+        v = 5 + 5 * rand;
+        angle = rand * pi;
+        x = centroid_a(i - 1, 1) + v * 50 / N * cos(angle);
+        y = centroid_a(i - 1, 2) + v * 50 / N * sin(angle);
+        if   x - radius < region(1,1)       % hit left
+             angle = rand * pi - pi/2 ;
+        elseif x + radius > region(2,1)     % hit right
+             angle =  rand * pi + pi/2;
+        elseif y - radius < region(1,2)     % hit bottom 
+             angle =  rand * pi;
+        elseif y + radius > region(2,2)     % hit top
+             angle =  -rand * pi;             
+        end
+        centroid_a(i, 1) = centroid_a(i - 1, 1) + v * 50 / N * cos(angle);
+        centroid_a(i, 2) = centroid_a(i - 1, 2) + v * 50 / N * sin(angle);
+    end
+    
+    for i = 2:N
+        v = 5 + 5 * rand;
+        angle = rand * pi;
+        x = centroid_b(i - 1, 1) + v * 50 / N * cos(angle);
+        y = centroid_b(i - 1, 2) + v * 50 / N * sin(angle);
+        if   x - radius < region(1,1)       % hit left
+             angle = rand * pi - pi/2 ;
+        elseif x + radius > region(2,1)     % hit right
+             angle =  rand * pi + pi/2;
+        elseif y - radius < region(1,2)     % hit bottom
+             angle =  rand * pi;
+        elseif y + radius > region(2,2)     % hit top
+             angle =  -rand * pi;             
+        end
+        centroid_b(i, 1) = centroid_b(i - 1, 1) + v * 50 / N * cos(angle);
+        centroid_b(i, 2) = centroid_b(i - 1, 2) + v * 50 / N * sin(angle);
+    end
 
     % random steps
     w_a = zeros([num_a N 2]);
@@ -102,6 +102,8 @@ function gen_sensor_trajectory(K, N)
 
     centroid = (centroid_a .* num_a + centroid_b .* num_b) ./ K;
     save('./data/inference/trajectory_sensor_centroid.mat', 'centroid');
+    save('./data/inference/trajectory_sensor_centroid_a.mat', 'centroid_a');
+    save('./data/inference/trajectory_sensor_centroid_b.mat', 'centroid_b');
 end
 
 

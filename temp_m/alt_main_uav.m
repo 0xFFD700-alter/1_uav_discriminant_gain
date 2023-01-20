@@ -1,4 +1,4 @@
-function [acc_list_1, acc_list_2] = alt_main(peak_p, model_1, model_2)
+function q_iter = alt_main_uav(peak_p, model_1, model_2)
     num_a = evalin('base', 'num_a');
     num_b = evalin('base', 'num_b');
     dim = evalin('base', 'dim');

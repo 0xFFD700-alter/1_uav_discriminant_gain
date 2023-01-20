@@ -1,5 +1,15 @@
-function [c_iter, a_iter] = solve_c_alter(q_iter, dim, power, gain, sca, scale, init_scale, verbose)
+function [c_iter, gain_list_temp, acc_list_1_temp, acc_list_2_temp] = solve_c_alter_gain_acc(q_iter, dim, power, gain, sca, scale, init_scale, verbose, model_1, model_2)
 % solve precoding strength c with SCA
+    gain_list_temp = [];
+    acc_list_1_temp = [];
+    acc_list_2_temp = [];
+    infer = evalin('base', 'infer');
+    repeat = evalin('base', 'repeat');
+
+    % data and model to perform inference tasks
+    load(model_1(1), model_1(2));
+    load(model_2(1), model_2(2));
+
     fprintf(['\n' repmat('*', 1, 10) 'solve precoding strength c with SCA' repmat('*', 1, 10) '\n']);
     [c_iter, a_iter] = init_sca(q_iter, dim, power, gain, init_scale);
     gain_iter = sum(a_iter);
@@ -39,6 +49,15 @@ function [c_iter, a_iter] = solve_c_alter(q_iter, dim, power, gain, sca, scale, 
         
         c_iter = sca.momentum * c_iter + (1 - sca.momentum) * c;
         a_iter = sca.momentum * a_iter + (1 - sca.momentum) * a;
+
+        % inference
+        infer.Mdl = eval(model_1(2));
+        acc_1 = inference(c_iter / sqrt(scale), dim, gain, infer, repeat);
+        infer.Mdl = eval(model_2(2));
+        acc_2 = inference(c_iter / sqrt(scale), dim, gain, infer, repeat);
+        gain_list_temp = [gain_list_temp cvx_optval];
+        acc_list_1_temp = [acc_list_1_temp acc_1];
+        acc_list_2_temp = [acc_list_2_temp acc_2];
         
         if abs(cvx_optval - gain_iter) <= sca.epsilon
             patience_count = patience_count + 1;

@@ -1,6 +1,6 @@
 function acc = inference(c_iter, dim, gain, infer, repeat)
 % perform inference task
-    rng(2022);
+    rng(2020);
     acc_sum = 0;
     for i = 1:repeat
         factor = 1 ./ sum(c_iter);

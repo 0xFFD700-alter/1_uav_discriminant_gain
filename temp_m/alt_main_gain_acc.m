@@ -1,4 +1,4 @@
-function [acc_list_1, acc_list_2] = alt_main(peak_p, model_1, model_2)
+function [gain_list, acc_list_1, acc_list_2] = alt_main_gain_acc(peak_p, model_1, model_2)
     num_a = evalin('base', 'num_a');
     num_b = evalin('base', 'num_b');
     dim = evalin('base', 'dim');
@@ -27,6 +27,7 @@ function [acc_list_1, acc_list_2] = alt_main(peak_p, model_1, model_2)
     acc_list_1 = [];
     acc_list_2 = [];
     dis_iter = 0;
+    gain_list = [];
 
     for iii = 1:100
 
@@ -36,14 +37,14 @@ function [acc_list_1, acc_list_2] = alt_main(peak_p, model_1, model_2)
         acc_1 = inference(c_iter, dim, gain, infer, repeat);
         infer.Mdl = eval(model_2(2));
         acc_2 = inference(c_iter, dim, gain, infer, repeat);
-        acc_list_1 = [acc_list_1 acc_1];
-        acc_list_2 = [acc_list_2 acc_2];
-
         dis_opt = sum(a_iter);
-
+        
         if abs(dis_opt - dis_iter) < epsilon
             break;
         end
+        acc_list_1 = [acc_list_1 acc_1];
+        acc_list_2 = [acc_list_2 acc_2];
+        gain_list = [gain_list, dis_opt];
         dis_iter = dis_opt;
 
         q_iter = solve_q(c_iter, dim, power, uav, scale_q, 1);

@@ -17,7 +17,7 @@ infer.label_test = label_test;
 % data dimensions
 dim.N = size(mu, 2);                % N -> # of feature dims (# of time slots)
 dim.K = size(delta, 1);             % K -> # of sensors
-num_a = fix(dim.K * 0.3) + 1;
+num_a = fix(dim.K * 0.5);
 num_b = dim.K - num_a;
 
 
@@ -38,14 +38,14 @@ gain.delta_0 = 1e-10;                       % variance of Gaussian noise
 power.ratio = 0.5;                                      % ratio of the average to the peak
 power.L_0 = 1e-4;                                       % channel fading at reference distance (1m)
 power.E = gain.delta + gain.sigma + mean(mu.^2, 1);     % expectation of signal power
-power.H = 50.0;                                        % UAV hovering altitude
+power.H = 70.0;                                         % UAV hovering altitude
 power.w = w;                                            % trajectory of sensors
 
 
 % UAV mobility constraints
 uav.slot = 50.0 / dim.N;            % duration of each time slot (duration / # of time slots)
-uav.Vm = 30.0;                      % UAV maximum speed
-uav.q_init = [200.0 0.0];           % UAV initial position
+uav.Vm = 12.0;                      % UAV maximum speed
+uav.q_init = [250.0 0.0];           % UAV initial position
 
 
 % alternating opt initialization, q_iter -> init UAV trajectory
@@ -65,17 +65,17 @@ end
 
 
 % sca opt parameter settings
-sca.momentum = 0.8;
+sca.momentum = 0.9;
 sca.epsilon = 1e-2;
-sca.patience = 5;
+sca.patience = 10;
 
 
 % opt parameter settings
-epsilon = 1e-2;
+epsilon = 1e-3;
 
 
 % auxiliary variables for alternating opt
-repeat = 10;
+repeat = 30;
 % gain_fun = @(x) sum(sum(x) .^ 2 .* gain.u ./ (gain.sigma .* sum(x) .^ 2 + sum(x .^ 2 .* gain.delta) + gain.delta_0));
 
 % scalars
