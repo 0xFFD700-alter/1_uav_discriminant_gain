@@ -44,7 +44,7 @@ power.w = w;                                            % trajectory of sensors
 
 % UAV mobility constraints
 uav.slot = 50.0 / dim.N;            % duration of each time slot (duration / # of time slots)
-uav.Vm = 12.0;                      % UAV maximum speed
+uav.Vm = 14.0;                      % UAV maximum speed
 uav.q_init = [250.0 0.0];           % UAV initial position
 
 

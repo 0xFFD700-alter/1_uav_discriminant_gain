@@ -20,8 +20,8 @@ function gen_sensor_trajectory(K, N)
     region = [0 0; 500 500];
     
     for i = 2:N
-        v = 5 + 5 * rand;
-        angle = rand * pi;
+        v = 8 + 5 * rand;
+        angle = pi/3 + rand * pi/3;
         x = centroid_a(i - 1, 1) + v * 50 / N * cos(angle);
         y = centroid_a(i - 1, 2) + v * 50 / N * sin(angle);
         if   x - radius < region(1,1)       % hit left
@@ -38,8 +38,8 @@ function gen_sensor_trajectory(K, N)
     end
     
     for i = 2:N
-        v = 5 + 5 * rand;
-        angle = rand * pi;
+        v = 8 + 5 * rand;
+        angle = pi/3 + rand * pi/3;
         x = centroid_b(i - 1, 1) + v * 50 / N * cos(angle);
         y = centroid_b(i - 1, 2) + v * 50 / N * sin(angle);
         if   x - radius < region(1,1)       % hit left
